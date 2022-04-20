@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Utility to examine raw depth buffer values."""
+
+import argparse
 import struct
 import sys
 import tkinter
@@ -166,11 +169,13 @@ class DepthImage:
 class ImageInfoDialog(simpledialog.Dialog):
     _BPP_VALUES = ["8", "16", "24"]
 
-    def __init__(self, parent, title, default_width=640, default_height=480):
+    def __init__(
+        self, parent, title, default_width=640, default_height=480, default_bpp=16
+    ):
         self._valid = False
         self._width = default_width
         self._height = default_height
-        self._bpp = self._BPP_VALUES[1]
+        self._bpp = str(default_bpp)
         self._bpp_variable = None
         super().__init__(parent, title)
 
@@ -234,12 +239,16 @@ class ImageInfoDialog(simpledialog.Dialog):
 
 
 class _App:
-    def __init__(self):
+    def __init__(self, input_file, width, height, bpp):
         self.image = None
+        self.tk_image = None
+
+        self._default_width = width
+        self._default_height = height
+        self._default_bpp = bpp
 
         self._root = tkinter.Tk()
         self._root.option_add("*tearOff", tkinter.FALSE)
-        windowing_system = self._root.tk.call("tk", "windowingsystem")
         self._root.title("Depth texture visualizer")
 
         menubar = tkinter.Menu(self._root)
@@ -273,7 +282,9 @@ class _App:
 
         self._root["menu"] = menubar
 
-        self._canvas = tkinter.Canvas(self._root, width=640, height=480, bg="black")
+        self._canvas = tkinter.Canvas(
+            self._root, width=width, height=height, bg="black"
+        )
         self._canvas.pack()
 
         self._hover_value_variable = tkinter.StringVar()
@@ -290,6 +301,12 @@ class _App:
 
         self._canvas.bind("<Motion>", self._on_canvas_mouse_move)
         self._canvas.bind("<Button-1>", self._on_canvas_mouse_click)
+
+        if input_file:
+            self.image = DepthImage(
+                input_file, self._default_width, self._default_height, self._default_bpp
+            )
+            self._update_canvas()
 
     def run(self):
         self._root.mainloop()
@@ -318,7 +335,13 @@ class _App:
         if not filename:
             return
 
-        info = ImageInfoDialog(self._root, "Image info")
+        info = ImageInfoDialog(
+            self._root,
+            "Image info",
+            self._default_width,
+            self._default_height,
+            self._default_bpp,
+        )
         if not info.valid:
             return
 
@@ -350,11 +373,49 @@ class _App:
         self._set_click_value(event.x, event.y, self.image.value_at(event.x, event.y))
 
 
-def main():
-    app = _App()
+def main(args):
+    app = _App(args.input, args.width, args.height, args.bpp)
     app.run()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+
+    def _parse_args():
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "-i",
+            "--input",
+            metavar="path",
+            help="Open the given file directly.",
+        )
+
+        parser.add_argument(
+            "--width",
+            metavar="pixels",
+            type=int,
+            default=640,
+            help="Default texture width.",
+        )
+
+        parser.add_argument(
+            "--height",
+            metavar="pixels",
+            type=int,
+            default=480,
+            help="Default texture height.",
+        )
+
+        parser.add_argument(
+            "-d",
+            "--bpp",
+            metavar="bits_per_pixel",
+            type=int,
+            default=16,
+            help="Default bits per pixel.",
+        )
+
+        return parser.parse_args()
+
+    sys.exit(main(_parse_args()))
