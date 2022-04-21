@@ -97,6 +97,13 @@ class DepthImage:
             offset += 2
 
         image_bytes = bytearray()
+        if max_value == min_value:
+            return Image.frombytes(
+                "L",
+                (self.width, self.height),
+                bytes(bytearray(self.width * self.height)),
+            )
+
         scale = 1.0 / (max_value - min_value)
         offset = 0
         for _ in range(self.width * self.height):
@@ -148,6 +155,13 @@ class DepthImage:
             if value > max_value:
                 max_value = value
             offset += 4
+
+        if max_value == min_value:
+            return Image.frombytes(
+                "L",
+                (self.width, self.height),
+                bytes(bytearray(self.width * self.height)),
+            )
 
         image_bytes = bytearray()
         scale = 1.0 / (max_value - min_value)
@@ -319,14 +333,22 @@ class _App:
             self._hover_value_variable.set("")
             return
 
-        self._hover_value_variable.set(f"Hover: {x}, {y} = {value} (0x{value:X})")
+        max_value = (1 << self.image.bpp) - 1
+        float_value = value / max_value
+        self._hover_value_variable.set(
+            f"Hover: {x}, {y} = {value} (0x{value:X} {float_value:.4f})"
+        )
 
     def _set_click_value(self, x, y, value):
         if value is None:
             self._click_value_variable.set("")
             return
 
-        self._click_value_variable.set(f"Click: {x}, {y} = {value} (0x{value:X})")
+        max_value = (1 << self.image.bpp) - 1
+        float_value = value / max_value
+        self._click_value_variable.set(
+            f"Click: {x}, {y} = {value} (0x{value:X} {float_value:.4f})"
+        )
 
     def _on_open(self):
         filename = filedialog.askopenfilename(
