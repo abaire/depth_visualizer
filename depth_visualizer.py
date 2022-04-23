@@ -294,6 +294,17 @@ class _App:
             command=self._on_view_mode_changed,
         )
 
+        menu_zoom = tkinter.Menu(menubar)
+        menubar.add_cascade(menu=menu_zoom, label="Zoom")
+        self._zoom = tkinter.StringVar(value="1")
+        for zoom in [1, 2, 4]:
+            menu_zoom.add_radiobutton(
+                label=f"{zoom}00%",
+                variable=self._zoom,
+                value=f"{zoom}",
+                command=self._on_zoom_changed,
+            )
+
         self._root["menu"] = menubar
 
         self._canvas = tkinter.Canvas(
@@ -326,6 +337,9 @@ class _App:
         self._root.mainloop()
 
     def _on_view_mode_changed(self):
+        self._update_canvas()
+
+    def _on_zoom_changed(self):
         self._update_canvas()
 
     def _set_hover_value(self, x, y, value):
@@ -373,10 +387,16 @@ class _App:
     def _update_canvas(self):
         if not self.image:
             return
-        self.tk_image = ImageTk.PhotoImage(
-            self.image.to_pil_image(self._view_mode.get())
-        )
-        self._canvas.config(width=self.image.width, height=self.image.height)
+
+        zoom = float(self._zoom.get())
+        w = int(self.image.width * zoom)
+        h = int(self.image.height * zoom)
+
+        pil_image = self.image.to_pil_image(self._view_mode.get())
+        if zoom != 1:
+            pil_image = pil_image.resize((w, h))
+        self.tk_image = ImageTk.PhotoImage(pil_image)
+        self._canvas.config(width=w, height=h)
         self._canvas.pack()
         self._canvas.create_image(0, 0, image=self.tk_image, anchor="nw")
 
