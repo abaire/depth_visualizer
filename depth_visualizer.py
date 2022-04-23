@@ -400,19 +400,28 @@ class _App:
         self._canvas.pack()
         self._canvas.create_image(0, 0, image=self.tk_image, anchor="nw")
 
+    def _get_image_offset(self, event):
+        zoom = float(self._zoom.get())
+        x = int(event.x / zoom)
+        y = int(event.y / zoom)
+
+        return x, y
+
     def _on_canvas_mouse_move(self, event):
         if not self.image:
             self._set_hover_value(0, 0, None)
             return
 
-        self._set_hover_value(event.x, event.y, self.image.value_at(event.x, event.y))
+        x, y = self._get_image_offset(event)
+        self._set_hover_value(x, y, self.image.value_at(x, y))
 
     def _on_canvas_mouse_click(self, event):
         if not self.image:
             self._set_hover_value(0, 0, None)
             return
 
-        self._set_click_value(event.x, event.y, self.image.value_at(event.x, event.y))
+        x, y = self._get_image_offset(event)
+        self._set_click_value(x, y, self.image.value_at(x, y))
 
 
 def main(args):
